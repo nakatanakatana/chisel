@@ -122,6 +122,16 @@ func TestRemoteDecode(t *testing.T) {
 			"0.0.0.0:3306:unix:///tmp/mysql.sock",
 		},
 		{
+			"5432:unix:///tmp/uds:contains:colon",
+			Remote {
+				LocalPort: "5432",
+				RemoteHost: "unix",
+				RemotePort: "/tmp/uds:contains:colon",
+				Uds: true,
+			},
+			"0.0.0.0:5432:unix:///tmp/uds:contains:colon",
+		},
+		{
 			"R:3306:unix:///tmp/mysql.sock",
 			Remote {
 				LocalPort: "3306",

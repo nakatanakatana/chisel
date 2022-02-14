@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"fmt"
 )
 
 // short-hand conversions (see remote_test)
@@ -59,7 +58,6 @@ func DecodeRemote(s string) (*Remote, error) {
 	for i, v := range matched {
 		parts[i] = v[1]
 	}
-	fmt.Println("parts", parts)
 	if len(parts) <= 0 {
 		return nil, errors.New("Invalid remote")
 	}
@@ -67,7 +65,19 @@ func DecodeRemote(s string) (*Remote, error) {
 	//parse from back to front, to set 'remote' fields first,
 	//then to set 'local' fields second (allows the 'remote' side
 	//to provide the defaults)
-	for i := len(parts) - 1; i >= 0; i-- {
+	cursor := len(parts) - 1
+	//last part unix://path/to/unix/domain/socket
+	for i := cursor; i >= 0; i-- {
+		udsStr := strings.Join(parts[i:], ":")
+		if isUds(udsStr) {
+			r.RemoteHost = "unix"
+			r.RemotePort = strings.TrimPrefix(udsStr, UdsPrefix)
+			r.Uds = true
+			cursor = i - 1
+			break
+		}
+	}
+	for i := cursor; i >= 0; i-- {
 		p := parts[i]
 		//remote portion is socks?
 		if i == len(parts)-1 && p == "socks" {
@@ -92,13 +102,6 @@ func DecodeRemote(s string) (*Remote, error) {
 				r.RemotePort = p
 			}
 			r.LocalPort = p
-			continue
-		}
-		//last part unix://path/to/unix/domain/socket
-		fmt.Println(i)
-		if i == len(parts)-1 && i > 0 && isUds(parts[i-1]+":"+p) {
-			r.RemotePort = strings.TrimPrefix(p, "//")
-			r.Uds = true
 			continue
 		}
 		if !r.Socks && (r.RemotePort == "" && r.LocalPort == "") {
