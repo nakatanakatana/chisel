@@ -1,0 +1,22 @@
+# build stage
+FROM golang:alpine AS build-env
+LABEL maintainer="dev@jpillora.com"
+RUN apk update
+RUN apk add git
+ENV CGO_ENABLED 0
+ADD . /src
+WORKDIR /src
+RUN go build \
+    -ldflags "-X github.com/jpillora/chisel/share.BuildVersion=$(git describe --abbrev=0 --tags)" \
+    -o chisel
+
+# container stage
+FROM google/cloud-sdk:alpine
+RUN apk update && apk add --no-cache ca-certificates dumb-init
+WORKDIR /app
+COPY --from=build-env /src/chisel /app/chisel
+COPY start.sh /
+RUN chmod +x /start.sh
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+
+CMD ["/start.sh"]
